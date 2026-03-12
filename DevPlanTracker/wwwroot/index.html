@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Capability Development Tracker</title>
+    <base href="/" />
+    
+    <link href="css/app.css" rel="stylesheet" />
+</head>
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    
+    <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>
+        // 1. Export Data File
+        window.downloadFile = function (fileName, content) {
+            const blob = new Blob([content], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        // 2. Rich Text Editor Commands
+        window.executeEditorCommand = function(command, value = null) {
+            if(command === 'createLink' && !value) {
+                value = prompt("Enter the link URL (e.g., https://github.com):", "https://");
+                if(!value) return;
+            }
+            document.execCommand(command, false, value);
+        };
+
+        // 3. Get HTML out of the editor
+        window.getEditorHtml = function(elementId) {
+            const el = document.getElementById(elementId);
+            return el ? el.innerHTML : "";
+        };
+
+        // 4. Set HTML into the editor safely
+        window.setEditorHtml = function(elementId, html) {
+            const el = document.getElementById(elementId);
+            if(el) {
+                el.innerHTML = html;
+            }
+        };
+
+        // 5. Force links inside the editor to open in a new tab
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' && e.target.closest('.rich-editor')) {
+                e.preventDefault(); 
+                window.open(e.target.href, '_blank', 'noopener,noreferrer');
+            }
+        });
+
+        document.addEventListener('auxclick', function(e) {
+            if (e.target.tagName === 'A' && e.target.closest('.rich-editor') && e.button === 1) {
+                e.preventDefault();
+                window.open(e.target.href, '_blank', 'noopener,noreferrer');
+            }
+        });
+
+        // 6. Automatically convert pasted URLs into clickable links
+        document.addEventListener('paste', function(e) {
+            const target = e.target.closest('.rich-editor');
+            if (!target) return; // Only run if pasting inside our editor
+
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            const urlRegex = /^(https?:\/\/[^\s]+)$/i; 
+            
+            if (urlRegex.test(text.trim())) {
+                e.preventDefault(); 
+                const link = `<a href="${text.trim()}" target="_blank">${text.trim()}</a>`;
+                document.execCommand("insertHTML", false, link); 
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,79 @@
+@using DevPlanTracker.Models
+@inject IJSRuntime JSRuntime
+@inject DevPlanTracker.Services.TaskStorageService Storage
+
+<div class="task-card @(TaskItem.Area == "Continuous Delivery" ? "continuous-delivery" : "")">
+    <div class="task-header">
+        <div class="task-title">@TaskItem.Description</div>
+        <div class="task-date">
+            <label>Target Date</label>
+            <input type="date" @bind="TaskItem.TargetDate" @bind:after="NotifyChange" />
+        </div>
+    </div>
+    <div class="task-meta">@TaskItem.Area | @TaskItem.Type | 🎯 Goal: @TaskItem.Goal</div>
+    
+    <div class="controls">
+        <select class="status-select @TaskItem.Status" @bind="TaskItem.Status" @bind:after="NotifyChange">
+            <option value="status-not-started">Not Started</option>
+            <option value="status-in-progress">In Progress</option>
+            <option value="status-completed">Completed</option>
+            <option value="status-blocked">Blocked / Needs Support</option>
+        </select>
+        
+        <div class="evidence-box">
+            <div class="editor-toolbar">
+                <button type="button" onclick="executeEditorCommand('bold')" title="Bold"><b>B</b></button>
+                <button type="button" onclick="executeEditorCommand('italic')" title="Italic"><i>I</i></button>
+                <button type="button" onclick="executeEditorCommand('underline')" title="Underline"><u>U</u></button>
+                <button type="button" onclick="executeEditorCommand('insertUnorderedList')" title="Bullet List">• List</button>
+                <button type="button" onclick="executeEditorCommand('insertOrderedList')" title="Numbered List">1. List</button>
+                <button type="button" onclick="executeEditorCommand('createLink')" title="Add Link">🔗 Link</button>
+                <input type="color" onchange="executeEditorCommand('foreColor', this.value)" title="Text Color">
+            </div>
+            
+            <div id="editor-@TaskItem.Id" class="rich-editor" contenteditable="true" 
+                 @onfocusout="SaveNotes">
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public DevTask TaskItem { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnTaskChanged { get; set; }
+
+    private string _lastLoadedNotes = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Safely push HTML to the editor only when it changes from the outside (like on load or data import)
+        if (_lastLoadedNotes != TaskItem.Notes)
+        {
+            _lastLoadedNotes = TaskItem.Notes ?? "";
+            await JSRuntime.InvokeVoidAsync("setEditorHtml", $"editor-{TaskItem.Id}", _lastLoadedNotes);
+        }
+    }
+
+    private async Task NotifyChange()
+    {
+        if (OnTaskChanged.HasDelegate)
+        {
+            await OnTaskChanged.InvokeAsync();
+        }
+    }
+
+    private async Task SaveNotes()
+    {
+        string? currentHtml = await Storage.GetEditorHtmlAsync(TaskItem.Id);
+        
+        if (currentHtml != _lastLoadedNotes)
+        {
+            TaskItem.Notes = currentHtml;
+            _lastLoadedNotes = currentHtml; 
+            await NotifyChange();
+        }
+    }
+}

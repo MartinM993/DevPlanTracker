@@ -1,0 +1,69 @@
+﻿@page "/"
+@using System.Text.Json
+@using DevPlanTracker.Models
+@inject IJSRuntime JSRuntime
+@using DevPlanTracker.Services
+@inject TaskStorageService Storage
+
+<div class="container">
+    <h1>🚀 Capability Development Tracker</h1>
+    
+    <div class="header-actions">
+        <button class="btn-primary" @onclick="ExportData">💾 Export / Backup Data</button>
+        
+        <label class="file-upload-label">
+            📂 Import Data
+            <InputFile id="importFile" accept=".json" OnChange="@ImportData" style="display: none;" />
+        </label>
+    </div>
+
+    <div class="progress-wrapper">
+        <div class="progress-bar" style="width: @ProgressPercentage%">
+            @(ProgressPercentage > 5 ? $"{ProgressPercentage}% Completed" : "")
+        </div>
+    </div>
+
+    <div id="tasks-container">
+        @foreach (var task in tasks)
+        {
+            <DevPlanTracker.Components.TaskCard TaskItem="task" OnTaskChanged="SaveData" />
+        }
+    </div>
+</div>
+
+@code {
+    private List<DevTask> tasks = new();
+    private int ProgressPercentage => tasks.Count == 0 ? 0 : (int)Math.Round((double)tasks.Count(t => t.Status == "status-completed") / tasks.Count * 100);
+
+    protected override async Task OnInitializedAsync()
+    {
+        tasks = await Storage.LoadTasksAsync();
+    }
+
+    private async Task SaveData()
+    {
+        await Storage.SaveTasksAsync(tasks);
+    }
+
+    private async Task ExportData()
+    {
+        await Storage.ExportTasksAsync(tasks);
+    }
+
+    private async Task ImportData(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var importedTasks = await Storage.ImportTasksAsync(e.File.OpenReadStream());
+            if (importedTasks != null && importedTasks.Count > 0)
+            {
+                tasks = importedTasks;
+                await SaveData();
+            }
+        }
+        catch (Exception)
+        {
+            await Storage.ShowAlertAsync("Invalid backup file format.");
+        }
+    }
+}
