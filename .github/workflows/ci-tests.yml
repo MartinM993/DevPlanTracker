@@ -1,0 +1,35 @@
+name: Run Unit Tests
+
+# This tells GitHub to run this script every time you push to the main branch
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Grab your code from the repository
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. "Install the dependency" - Set up the .NET 10 SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    # 3. Download Moq, xUnit, and Blazor dependencies
+    - name: Restore dependencies
+      run: dotnet restore DevPlanTracker.sln
+
+    # 4. Build the app and the test project
+    - name: Build Solution
+      run: dotnet build DevPlanTracker.sln --no-restore
+
+    # 5. Run the tests!
+    - name: Run Tests
+      run: dotnet test DevPlanTracker.sln --no-build --verbosity normal
