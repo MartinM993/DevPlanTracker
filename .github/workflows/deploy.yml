@@ -37,18 +37,23 @@ jobs:
     - name: Publish the App
       run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o out --nologo
 
-    - name: Configure for GitHub Pages
+    - name: Fix GitHub Pages Compatibility
       run: |
         TARGET_DIR="out/wwwroot"
         
+        # 1. Fix Base Href
         sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' $TARGET_DIR/index.html
-        sed -i 's|blazor.webassembly.js|blazor.webassembly.js?v=${{ github.run_id }}|g' $TARGET_DIR/index.html
         
+        # 2. Fix the Fingerprinted JS filename in index.html
+        # This finds the actual filename (e.g. blazor.webassembly.66stpp682q.js) and updates index.html
+        REAL_JS=$(ls $TARGET_DIR/_framework/blazor.webassembly.*.js | xargs -n 1 basename)
+        sed -i "s|blazor.webassembly.js|$REAL_JS|g" $TARGET_DIR/index.html
+        
+        # 3. Create .nojekyll (Force it into the output)
         touch $TARGET_DIR/.nojekyll
+        
+        # 4. Create 404.html
         cp $TARGET_DIR/index.html $TARGET_DIR/404.html
-
-    - name: List Files (Diagnostics)
-      run: ls -R out/wwwroot
 
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
