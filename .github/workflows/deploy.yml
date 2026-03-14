@@ -40,7 +40,7 @@ jobs:
       run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o release --nologo
 
     - name: Fix Base Href for GitHub Pages
-      run: sed -i 's/<base href="\/" \/>/<base href="\/${{ github.event.repository.name }}\/" \/>/g' release/wwwroot/index.html
+      run: sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' release/wwwroot/index.html
 
     - name: Add .nojekyll file
       run: touch release/wwwroot/.nojekyll
