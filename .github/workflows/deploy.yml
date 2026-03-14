@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+# 1. The 'workflow_dispatch' trigger creates the manual button!
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag to deploy (e.g., v1.0.1). Leave blank to deploy the latest code.'
+        required: false
+        type: string
+
+# 2. Grant permission for the action to upload files to your GitHub Pages server
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy-to-github-pages:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.version_tag || github.ref }}
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Publish the App
+      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o release --nologo
+
+    - name: Fix Base Href for GitHub Pages
+      run: sed -i 's/<base href="\/" \/>/<base href="\/${{ github.event.repository.name }}\/" \/>/g' release/wwwroot/index.html
+
+    - name: Add .nojekyll file
+      run: touch release/wwwroot/.nojekyll
+
+    - name: Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: 'release/wwwroot'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
