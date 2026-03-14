@@ -26,7 +26,7 @@ namespace DevPlanTracker.Tests
 
             // Assert
             Assert.NotNull(tasks);
-            Assert.Equal(11, tasks.Count);
+            Assert.Equal(10, tasks.Count);
             Assert.Equal("Delivery Excellence", tasks[0].Area);
         }
 
