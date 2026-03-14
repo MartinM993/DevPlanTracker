@@ -41,22 +41,27 @@ jobs:
       run: |
         TARGET_DIR="out/wwwroot"
         
-        # 1. Fix Base Href
-        sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' $TARGET_DIR/index.html
-        
-        # 2. Map the fingerprinted JS filename
-        REAL_JS=$(ls $TARGET_DIR/_framework/blazor.webassembly.*.js | xargs -n 1 basename)
-        sed -i "s|blazor.webassembly.js|$REAL_JS|g" $TARGET_DIR/index.html
-        
-        # 3. THE CRITICAL FIX: Tell the JS loader where the framework is
-        # We find the 'dotnet.js' references inside the Blazor script and make them relative
-        sed -i 's|"/_framework/"|"_framework/"|g' $TARGET_DIR/_framework/$REAL_JS
-        
-        # 4. Create .nojekyll (Force it)
+        # 1. Force creation of .nojekyll (using -f to ensure it happens)
         touch $TARGET_DIR/.nojekyll
         
-        # 5. Create 404.html
+        # 2. Fix Base Href
+        sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' $TARGET_DIR/index.html
+        
+        # 3. Fix Fingerprinted Filenames (The "dotnet.js" 404 Fix)
+        # .NET 10 adds hashes to filenames. We must update index.html to point to the real files.
+        REAL_BLAZOR_JS=$(basename $(ls $TARGET_DIR/_framework/blazor.webassembly.*.js))
+        sed -i "s|blazor.webassembly.js|$REAL_BLAZOR_JS|g" $TARGET_DIR/index.html
+        
+        # 4. Create 404.html
         cp $TARGET_DIR/index.html $TARGET_DIR/404.html
+
+    - name: Verify Deployment Folder (CRITICAL LOG)
+      # Using -la to show HIDDEN files like .nojekyll
+      run: |
+        echo "Checking root of deployment:"
+        ls -la out/wwwroot
+        echo "Checking index.html content for base href:"
+        grep "base href" out/wwwroot/index.html
 
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
