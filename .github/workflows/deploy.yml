@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag to deploy (e.g., v0.0.7). Leave blank to deploy latest.'
+        description: 'Version tag to deploy'
         required: false
         type: string
 
@@ -35,26 +35,25 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Publish the App
-      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o release --nologo
+      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o out --nologo
 
-    - name: Fix GitHub Pages Compatibility
+    - name: Configure for GitHub Pages
       run: |
-        # 1. Update Base Href
-        sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' release/wwwroot/index.html
+        TARGET_DIR="out/wwwroot"
         
-        # 2. Add Cache Buster
-        sed -i 's|blazor.webassembly.js|blazor.webassembly.js?v=${{ github.run_id }}|g' release/wwwroot/index.html
+        sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' $TARGET_DIR/index.html
+        sed -i 's|blazor.webassembly.js|blazor.webassembly.js?v=${{ github.run_id }}|g' $TARGET_DIR/index.html
         
-        # 3. CREATE THE NOJEKYLL FILE (Crucial)
-        touch release/wwwroot/.nojekyll
-        
-        # 4. Create 404.html for SPA routing
-        cp release/wwwroot/index.html release/wwwroot/404.html
+        touch $TARGET_DIR/.nojekyll
+        cp $TARGET_DIR/index.html $TARGET_DIR/404.html
+
+    - name: List Files (Diagnostics)
+      run: ls -R out/wwwroot
 
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: 'release/wwwroot'
+        path: 'out/wwwroot'
 
     - name: Deploy to GitHub Pages
       id: deployment
