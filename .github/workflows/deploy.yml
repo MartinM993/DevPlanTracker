@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag to deploy (e.g., v0.0.7). Leave blank to deploy the latest code.'
+        description: 'Version tag to deploy (e.g., v0.0.7). Leave blank to deploy latest.'
         required: false
         type: string
 
@@ -37,11 +37,18 @@ jobs:
     - name: Publish the App
       run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o release --nologo
 
-    - name: Configure for GitHub Pages
+    - name: Fix GitHub Pages Compatibility
       run: |
+        # 1. Update Base Href
         sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' release/wwwroot/index.html
+        
+        # 2. Add Cache Buster
         sed -i 's|blazor.webassembly.js|blazor.webassembly.js?v=${{ github.run_id }}|g' release/wwwroot/index.html
+        
+        # 3. CREATE THE NOJEKYLL FILE (Crucial)
         touch release/wwwroot/.nojekyll
+        
+        # 4. Create 404.html for SPA routing
         cp release/wwwroot/index.html release/wwwroot/404.html
 
     - name: Upload Pages Artifact
