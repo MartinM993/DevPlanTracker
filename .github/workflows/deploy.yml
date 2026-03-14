@@ -1,6 +1,5 @@
 name: Deploy to GitHub Pages
 
-# 1. The 'workflow_dispatch' trigger creates the manual button!
 on:
   workflow_dispatch:
     inputs:
@@ -9,7 +8,6 @@ on:
         required: false
         type: string
 
-# 2. Grant permission for the action to upload files to your GitHub Pages server
 permissions:
   contents: read
   pages: write
@@ -39,8 +37,10 @@ jobs:
     - name: Publish the App
       run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o release --nologo
 
-    - name: Fix Base Href for GitHub Pages
-      run: sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' release/wwwroot/index.html
+    - name: Configure Index.html and Cache Buster
+      run: |
+        sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' release/wwwroot/index.html
+        sed -i 's|blazor.webassembly.js|blazor.webassembly.js?v=${{ github.run_id }}|g' release/wwwroot/index.html
 
     - name: Add .nojekyll file
       run: touch release/wwwroot/.nojekyll
