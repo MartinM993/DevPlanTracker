@@ -1,13 +1,14 @@
 name: Create Release
 
-# This triggers ONLY when a PR is successfully merged into main
 on:
   push:
     branches: [ "main", "master" ]
 
-# Grant permission to create Git tags and GitHub Releases
 permissions:
   contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-release:
@@ -16,7 +17,6 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # 1. Automatically calculate the next version number
     - name: Bump version and push tag
       id: tag_version
       uses: mathieudutour/github-tag-action@v6.2
@@ -24,23 +24,19 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         default_bump: patch
 
-    # 2. Setup .NET
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '10.0.x'
 
-    # 3. Compile the app and stamp the new version number into the code!
     - name: Publish the App
-      run: dotnet publish DevPlanTracker.sln -c Release -p:Version=${{ steps.tag_version.outputs.new_version }} -o release --nologo
+      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -p:Version=${{ steps.tag_version.outputs.new_version }} -o release --nologo
 
-    # 4. Zip the compiled files for safekeeping
     - name: Zip Artifacts
       run: |
         cd release/wwwroot
         zip -r ../../DevPlanTracker-${{ steps.tag_version.outputs.new_tag }}.zip .
 
-    # 5. Create the official GitHub Release page and attach the Zip file
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
