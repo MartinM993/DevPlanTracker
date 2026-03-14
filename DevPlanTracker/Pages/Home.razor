@@ -2,7 +2,6 @@
 @using System.Text.Json
 @using DevPlanTracker.Models
 @using DevPlanTracker.Services
-@using System.Reflection
 
 @inject IJSRuntime JSRuntime
 @inject TaskStorageService Storage
@@ -34,7 +33,6 @@
 </div>
 
 @code {
-    private string AppVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
     private List<DevTask> tasks = new();
     private int ProgressPercentage => tasks.Count == 0 ? 0 : (int)Math.Round((double)tasks.Count(t => t.Status == "status-completed") / tasks.Count * 100);
 
