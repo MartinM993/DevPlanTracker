@@ -34,21 +34,20 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    - name: Publish the App (Bypass .NET 10 Bug)
-      # Disabling WasmFingerprintAssets stops the compiler from renaming dotnet.js
-      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o out --nologo -p:WasmFingerprintAssets=false
+    - name: Publish the App
+      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o out --nologo
 
     - name: Configure for GitHub Pages
       run: |
         TARGET_DIR="out/wwwroot"
         
-        # 1. Force creation of .nojekyll so GitHub serves the _framework folder
+        # 1. Force creation of .nojekyll
         touch $TARGET_DIR/.nojekyll
         
         # 2. Fix Base Href for GitHub Pages routing
         sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' $TARGET_DIR/index.html
         
-        # 3. Create 404.html to handle direct URL navigation
+        # 3. Create 404.html for direct URL navigation
         cp $TARGET_DIR/index.html $TARGET_DIR/404.html
 
     - name: Upload Pages Artifact
