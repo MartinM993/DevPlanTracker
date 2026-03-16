@@ -34,34 +34,22 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    - name: Publish the App
-      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o out --nologo
+    - name: Publish the App (Bypass .NET 10 Bug)
+      # Disabling WasmFingerprintAssets stops the compiler from renaming dotnet.js
+      run: dotnet publish DevPlanTracker/DevPlanTracker.csproj -c Release -o out --nologo -p:WasmFingerprintAssets=false
 
-    - name: Fix GitHub Pages Compatibility
+    - name: Configure for GitHub Pages
       run: |
         TARGET_DIR="out/wwwroot"
         
-        # 1. Force creation of .nojekyll (using -f to ensure it happens)
+        # 1. Force creation of .nojekyll so GitHub serves the _framework folder
         touch $TARGET_DIR/.nojekyll
         
-        # 2. Fix Base Href
+        # 2. Fix Base Href for GitHub Pages routing
         sed -i 's|<base href="/"|<base href="/DevPlanTracker/"|g' $TARGET_DIR/index.html
         
-        # 3. Fix Fingerprinted Filenames (The "dotnet.js" 404 Fix)
-        # .NET 10 adds hashes to filenames. We must update index.html to point to the real files.
-        REAL_BLAZOR_JS=$(basename $(ls $TARGET_DIR/_framework/blazor.webassembly.*.js))
-        sed -i "s|blazor.webassembly.js|$REAL_BLAZOR_JS|g" $TARGET_DIR/index.html
-        
-        # 4. Create 404.html
+        # 3. Create 404.html to handle direct URL navigation
         cp $TARGET_DIR/index.html $TARGET_DIR/404.html
-
-    - name: Verify Deployment Folder (CRITICAL LOG)
-      # Using -la to show HIDDEN files like .nojekyll
-      run: |
-        echo "Checking root of deployment:"
-        ls -la out/wwwroot
-        echo "Checking index.html content for base href:"
-        grep "base href" out/wwwroot/index.html
 
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
